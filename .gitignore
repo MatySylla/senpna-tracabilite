@@ -3,3 +3,4 @@ wallet/
 .env
 *.tar.gz
 *.gz
+vendor/
