@@ -137,3 +137,23 @@ exports.updateStatut = async (req, res) => {
         if (gateway) gateway.disconnect();
     }
 };
+// Lister tous les lots depuis la blockchain
+exports.getAllLots = async (req, res) => {
+    let gateway;
+    try {
+        gateway = await connectToFabric();
+        const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
+        const contract = network.getContract('gestionLots');
+
+        const result = await contract.evaluateTransaction('GetAllLots');
+        const lots = JSON.parse(result.toString());
+
+        // Retourner un tableau vide si null
+        return res.status(200).json(lots || []);
+
+    } catch (error) {
+        return res.status(500).json({ erreur: error.message });
+    } finally {
+        if (gateway) gateway.disconnect();
+    }
+};

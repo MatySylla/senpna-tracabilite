@@ -6,6 +6,7 @@ const { Client } = require('pg');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'senpna_secret_2026';
 
+// Créer une connexion PostgreSQL
 const getClient = () => new Client({
     host: 'localhost',
     database: 'senpna_db',
@@ -14,7 +15,7 @@ const getClient = () => new Client({
     port: 5432
 });
 
-// Login
+// Connexion utilisateur — génère un token JWT
 exports.login = async (req, res) => {
     const client = getClient();
     try {
@@ -28,10 +29,10 @@ exports.login = async (req, res) => {
 
         await client.connect();
 
-        // Chercher l'utilisateur
+        // Chercher l'utilisateur avec son organisation
         const result = await client.query(
-            `SELECT u.*, o.code as codeOrg, o.nom as nomOrg 
-             FROM utilisateurs u 
+            `SELECT u.*, o.code as codeOrg, o.nom as nomOrg
+             FROM utilisateurs u
              LEFT JOIN organisations o ON u.idOrganisation = o.idOrganisation
              WHERE u.email = $1 AND u.actif = TRUE`,
             [email]
@@ -43,13 +44,13 @@ exports.login = async (req, res) => {
 
         const user = result.rows[0];
 
-        // Vérifier mot de passe
+        // Vérifier le mot de passe avec bcrypt
         const motDePasseValide = await bcrypt.compare(motDePasse, user.motdepasse);
         if (!motDePasseValide) {
             return res.status(401).json({ erreur: 'Email ou mot de passe incorrect' });
         }
 
-        // Générer JWT
+        // Générer le token JWT valable 24h
         const token = jwt.sign(
             {
                 id: user.idutilisateur,
@@ -64,12 +65,11 @@ exports.login = async (req, res) => {
             { expiresIn: '24h' }
         );
 
-        // Enregistrer log
+        // Enregistrer la connexion dans les logs
         await client.query(
             `INSERT INTO logs (action, details, ipAdresse, idUtilisateur)
              VALUES ($1, $2, $3, $4)`,
-            ['LOGIN', `Connexion de ${user.nom} ${user.prenom}`,
-             req.ip, user.idutilisateur]
+            ['LOGIN', `Connexion de ${user.nom} ${user.prenom}`, req.ip, user.idutilisateur]
         );
 
         return res.status(200).json({
@@ -81,7 +81,8 @@ exports.login = async (req, res) => {
                 prenom: user.prenom,
                 email: user.email,
                 role: user.role,
-                organisation: user.codeorg
+                organisation: user.codeorg,
+                nomOrganisation: user.nomorg
             }
         });
 
@@ -92,7 +93,62 @@ exports.login = async (req, res) => {
     }
 };
 
-// Profil utilisateur connecté
+// Créer un nouvel utilisateur — Admin SEN-PNA uniquement
+exports.register = async (req, res) => {
+    const client = getClient();
+    try {
+        const { nom, prenom, email, motDePasse, role, idOrganisation } = req.body;
+
+        if (!nom || !prenom || !email || !motDePasse || !role) {
+            return res.status(400).json({
+                erreur: 'Tous les champs sont obligatoires'
+            });
+        }
+
+        await client.connect();
+
+        // Vérifier que l'email n'existe pas déjà
+        const existant = await client.query(
+            'SELECT idUtilisateur FROM utilisateurs WHERE email = $1',
+            [email]
+        );
+
+        if (existant.rows.length > 0) {
+            return res.status(409).json({
+                erreur: 'Cet email est déjà utilisé'
+            });
+        }
+
+        // Hasher le mot de passe avec bcrypt
+        const motDePasseHash = await bcrypt.hash(motDePasse, 12);
+
+        // Insérer le nouvel utilisateur dans PostgreSQL
+        const result = await client.query(`
+            INSERT INTO utilisateurs
+            (nom, prenom, email, motDePasse, role, idOrganisation)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING idUtilisateur, nom, prenom, email, role
+        `, [nom, prenom, email, motDePasseHash, role, idOrganisation]);
+
+        // Enregistrer la création dans les logs
+        await client.query(`
+            INSERT INTO logs (action, details, ipAdresse, idUtilisateur)
+            VALUES ($1, $2, $3, $4)
+        `, ['CREATE_USER', `Utilisateur ${email} créé`, req.ip, result.rows[0].idutilisateur]);
+
+        return res.status(201).json({
+            message: 'Utilisateur créé avec succès',
+            utilisateur: result.rows[0]
+        });
+
+    } catch (error) {
+        return res.status(500).json({ erreur: error.message });
+    } finally {
+        await client.end();
+    }
+};
+
+// Récupérer le profil de l'utilisateur connecté
 exports.profil = async (req, res) => {
     return res.status(200).json({
         message: 'Profil récupéré',

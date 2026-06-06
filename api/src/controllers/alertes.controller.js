@@ -90,3 +90,22 @@ exports.declencherRappel = async (req, res) => {
         if (gateway) gateway.disconnect();
     }
 };
+// Lister toutes les alertes depuis la blockchain
+exports.getAllAlertes = async (req, res) => {
+    let gateway;
+    try {
+        gateway = await connectToFabric();
+        const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
+        const contract = network.getContract('gestionAlertes');
+
+        const result = await contract.evaluateTransaction('GetAllAlertes');
+        const alertes = JSON.parse(result.toString());
+
+        return res.status(200).json(alertes || []);
+
+    } catch (error) {
+        return res.status(500).json({ erreur: error.message });
+    } finally {
+        if (gateway) gateway.disconnect();
+    }
+};
