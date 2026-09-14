@@ -69,12 +69,44 @@ exports.confirmerReception = async (req, res) => {
 
         gateway = await connectToFabric();
         const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
-        const contract = network.getContract('gestionTransferts');
+        const contractTransferts = network.getContract('gestionTransferts');
+        const contractLots = network.getContract('gestionLots');
 
-        await contract.submitTransaction('ConfirmerReception', idTransfert);
+        // 1. Récupérer le transfert pour avoir les infos lot
+        const transfertResult = await contractTransferts.evaluateTransaction('GetTransfert', idTransfert);
+        const transfert = JSON.parse(transfertResult.toString());
+
+        // 2. Confirmer le transfert sur la blockchain
+        await contractTransferts.submitTransaction('ConfirmerReception', idTransfert);
+
+        // 3. Récupérer le lot actuel
+        const lotResult = await contractLots.evaluateTransaction('GetLot', transfert.idLot);
+        const lot = JSON.parse(lotResult.toString());
+
+        // Calculer nouvelle quantité
+        const nouvelleQuantite = Math.max(0, lot.quantite - transfert.quantite);
+        await contractLots.submitTransaction(
+            'UpdateLot',
+            transfert.idLot,
+            'En stock SEN-PNA',
+            nouvelleQuantite.toString(),
+            transfert.expediteur
+        );
+
+        // Créer le sous-lot chez le destinataire
+        const idSousLot = transfert.idLot + '-' + idTransfert;
+        await contractLots.submitTransaction(
+            'CreateSousLot',
+            idSousLot,
+            transfert.idLot,
+            transfert.destinataire,
+            transfert.quantite.toString()
+        );
 
         return res.status(200).json({
-            message: `Réception du transfert ${idTransfert} confirmée`
+            message: `Réception du transfert ${idTransfert} confirmée`,
+            lot: transfert.idLot,
+            destinataire: transfert.destinataire
         });
 
     } catch (error) {
@@ -121,9 +153,9 @@ exports.getAllTransferts = async (req, res) => {
         const contract = network.getContract('gestionTransferts');
 
         const result = await contract.evaluateTransaction('GetAllTransferts');
-        const transferts = JSON.parse(result.toString());
-
-        return res.status(200).json(transferts || []);
+        const data = result.toString();
+        const transferts = (data && data !== "null") ? JSON.parse(data) : [];
+        return res.status(200).json(transferts);
 
     } catch (error) {
         return res.status(500).json({ erreur: error.message });

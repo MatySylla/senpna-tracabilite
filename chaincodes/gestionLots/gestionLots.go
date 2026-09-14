@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -27,6 +26,7 @@ type LotMedicament struct {
 	Temperature        float64 `json:"temperature"`
 	DateCreation       string  `json:"dateCreation"`
 	DateMiseAJour      string  `json:"dateMiseAJour"`
+	LotParent          string  `json:"lotParent"`
 }
 
 // CreateLot — Créer un nouveau lot
@@ -62,8 +62,8 @@ func (s *SmartContract) CreateLot(
 		ProprietaireActuel: "SEN-PNA",
 		Statut:             "En stock SEN-PNA",
 		Temperature:        temperature,
-		DateCreation:       time.Now().Format(time.RFC3339),
-		DateMiseAJour:      time.Now().Format(time.RFC3339),
+		DateCreation:       func() string { ts, _ := ctx.GetStub().GetTxTimestamp(); return fmt.Sprintf("%d", ts.Seconds) }(),
+		DateMiseAJour:      func() string { ts, _ := ctx.GetStub().GetTxTimestamp(); return fmt.Sprintf("%d", ts.Seconds) }(),
 	}
 
 	// Sérialiser et sauvegarder
@@ -108,7 +108,8 @@ func (s *SmartContract) UpdateStatut(
 	}
 
 	lot.Statut = nouveauStatut
-	lot.DateMiseAJour = time.Now().Format(time.RFC3339)
+	ts, _ := ctx.GetStub().GetTxTimestamp()
+	lot.DateMiseAJour = fmt.Sprintf("%d", ts.Seconds)
 
 	lotJSON, err := json.Marshal(lot)
 	if err != nil {
@@ -230,4 +231,78 @@ func main() {
 	if err := chaincode.Start(); err != nil {
 		fmt.Printf("Erreur démarrage chaincode : %v", err)
 	}
+}
+// UpdateLot — Mettre à jour statut ET quantité
+func (s *SmartContract) UpdateLot(
+ctx contractapi.TransactionContextInterface,
+idLot string,
+nouveauStatut string,
+nouvelleQuantite int,
+nouveauProprietaire string) error {
+
+lot, err := s.GetLot(ctx, idLot)
+if err != nil {
+return err
+}
+
+lot.Statut = nouveauStatut
+lot.Quantite = nouvelleQuantite
+lot.ProprietaireActuel = nouveauProprietaire
+ts, _ := ctx.GetStub().GetTxTimestamp()
+lot.DateMiseAJour = fmt.Sprintf("%d", ts.Seconds)
+
+lotJSON, err := json.Marshal(lot)
+if err != nil {
+return err
+}
+return ctx.GetStub().PutState(idLot, lotJSON)
+}
+
+// CreateSousLot — Créer un sous-lot lors d'un transfert confirmé
+func (s *SmartContract) CreateSousLot(
+ctx contractapi.TransactionContextInterface,
+idSousLot string,
+idLotParent string,
+proprietaire string,
+quantite int) error {
+
+// Récupérer le lot parent
+lotParent, err := s.GetLot(ctx, idLotParent)
+if err != nil {
+return fmt.Errorf("lot parent %s introuvable : %v", idLotParent, err)
+}
+
+// Vérifier que le sous-lot n'existe pas
+existant, err := ctx.GetStub().GetState(idSousLot)
+if err != nil {
+return err
+}
+if existant != nil {
+return fmt.Errorf("sous-lot %s existe déjà", idSousLot)
+}
+
+ts, _ := ctx.GetStub().GetTxTimestamp()
+timestamp := fmt.Sprintf("%d", ts.Seconds)
+
+sousLot := LotMedicament{
+IdLot:              idSousLot,
+NomMedicament:      lotParent.NomMedicament,
+CodeGTIN:           lotParent.CodeGTIN,
+Fabricant:          lotParent.Fabricant,
+DateFabrication:    lotParent.DateFabrication,
+DateExpiration:     lotParent.DateExpiration,
+Quantite:           quantite,
+ProprietaireActuel: proprietaire,
+Statut:             "En stock " + proprietaire,
+Temperature:        lotParent.Temperature,
+DateCreation:       timestamp,
+DateMiseAJour:      timestamp,
+LotParent:          idLotParent,
+}
+
+sousLotJSON, err := json.Marshal(sousLot)
+if err != nil {
+return err
+}
+return ctx.GetStub().PutState(idSousLot, sousLotJSON)
 }

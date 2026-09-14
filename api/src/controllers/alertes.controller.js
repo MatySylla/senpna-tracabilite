@@ -99,9 +99,9 @@ exports.getAllAlertes = async (req, res) => {
         const contract = network.getContract('gestionAlertes');
 
         const result = await contract.evaluateTransaction('GetAllAlertes');
-        const alertes = JSON.parse(result.toString());
-
-        return res.status(200).json(alertes || []);
+        const data = result.toString();
+        const alertes = (data && data !== "null") ? JSON.parse(data) : [];
+        return res.status(200).json(alertes);
 
     } catch (error) {
         return res.status(500).json({ erreur: error.message });

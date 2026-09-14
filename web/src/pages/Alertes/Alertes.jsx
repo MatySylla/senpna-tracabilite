@@ -287,7 +287,7 @@ const Alertes = () => {
               ['Type', alerteResult.typeAlerte],
               ['Message', alerteResult.message],
               ['Émetteur', alerteResult.emetteur],
-              ['Horodatage', new Date(alerteResult.horodatage).toLocaleString('fr-FR')],
+              ['Horodatage', (() => { const v = alerteResult.horodatage; const s = String(v || '').match(/(\d+)/); return s && parseInt(s[1]) > 1000000000 ? new Date(parseInt(s[1]) * 1000).toLocaleString('fr-FR') : new Date(v).toLocaleString('fr-FR'); })()],
               ['Active', alerteResult.estActive ? '✅ Oui' : '❌ Non'],
             ].map(([k, v]) => (
               <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee', fontSize: 13 }}>
@@ -340,7 +340,7 @@ const Alertes = () => {
                   </td>
                   <td style={{ padding: '10px 12px' }}>{a.emetteur}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    {new Date(a.horodatage).toLocaleDateString('fr-FR')}
+                    {(() => { const v = a.horodatage; const s = String(v || '').match(/(\d+)/); return s && parseInt(s[1]) > 1000000000 ? new Date(parseInt(s[1]) * 1000).toLocaleDateString('fr-FR') : new Date(v).toLocaleDateString('fr-FR'); })()}
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     {a.estActive ? '✅' : '❌'}

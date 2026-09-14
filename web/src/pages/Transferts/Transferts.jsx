@@ -34,7 +34,17 @@ const Transferts = () => {
     try {
       const res = await getAllTransferts();
       if (res.data && Array.isArray(res.data)) {
-        setTransferts(res.data);
+        const role = user?.role;
+        const org = user?.organisation;
+        // Admin et ARP voient tout
+        if (['ADMIN_SENPNA', 'INSPECTEUR_ARP'].includes(role)) {
+          setTransferts(res.data);
+        } else {
+          // Les autres voient uniquement les transferts qui les concernent
+          setTransferts(res.data.filter(t =>
+            t.destinataire === org || t.expediteur === org
+          ));
+        }
       }
     } catch (err) {
       console.error('Erreur chargement transferts :', err);
@@ -238,7 +248,13 @@ const Transferts = () => {
                 ['Destinataire', transfertResult.destinataire],
                 ['Quantité', `${transfertResult.quantite} boîtes`],
                 ['Bon livraison', transfertResult.bonLivraison],
-                ['Date', new Date(transfertResult.horodatage).toLocaleString('fr-FR')],
+                ['Date', (() => {
+    const secMatch = String(transfertResult.horodatage).match(/(\d+)/);
+    if (secMatch && parseInt(secMatch[1]) > 1000000000) {
+      return new Date(parseInt(secMatch[1]) * 1000).toLocaleString('fr-FR');
+    }
+    return new Date(transfertResult.horodatage).toLocaleString('fr-FR');
+  })()],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee', fontSize: 13 }}>
                   <span style={{ color: '#666' }}>{k}</span>
@@ -294,7 +310,7 @@ const Transferts = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
           <thead>
             <tr style={{ background: '#f5f7fa' }}>
-              {['ID', 'Lot', 'Expéditeur', 'Destinataire', 'Quantité', 'Date', 'Statut'].map(h => (
+              {['ID', 'Lot', 'Expéditeur', 'Destinataire', 'Quantité', 'Date', 'Statut', 'Action'].map(h => (
                 <th key={h} style={{ textAlign: 'left', padding: '10px 12px', fontWeight: 500, color: '#666', borderBottom: '1px solid #e8ecf0' }}>{h}</th>
               ))}
             </tr>
@@ -317,12 +333,26 @@ const Transferts = () => {
                   <td style={{ padding: '10px 12px' }}>{t.destinataire}</td>
                   <td style={{ padding: '10px 12px' }}>{t.quantite}</td>
                   <td style={{ padding: '10px 12px' }}>
-                    {new Date(t.horodatage).toLocaleDateString('fr-FR')}
+                    {(() => {
+    const secMatch = String(t.horodatage).match(/(\d+)/);
+    if (secMatch && parseInt(secMatch[1]) > 1000000000) {
+      return new Date(parseInt(secMatch[1]) * 1000).toLocaleDateString('fr-FR');
+    }
+    return new Date(t.horodatage).toLocaleDateString('fr-FR');
+  })()}
                   </td>
                   <td style={{ padding: '10px 12px' }}>
                     <span style={{ ...getStatutStyle(t.statut), padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 500 }}>
                       {t.statut}
                     </span>
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    {t.statut === 'En attente' && peutConfirmer && (
+                      <button onClick={() => { setIdRecherche(t.idTransfert); setTransfertResult(t); window.scrollTo(0, 300); }}
+                        style={{ padding: '4px 10px', background: '#185FA5', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 11 }}>
+                        Gérer
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))

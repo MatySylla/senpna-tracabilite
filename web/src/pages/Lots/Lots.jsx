@@ -249,19 +249,43 @@ const Lots = () => {
             <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>
               📋 Historique blockchain immuable
             </h3>
-            {historique.map((tx, i) => (
-              <div key={i} style={{ padding: 12, background: '#f9fafb', borderRadius: 8, marginBottom: 8, border: '1px solid #e8ecf0', fontSize: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ fontFamily: 'monospace', color: '#185FA5' }}>
-                    {tx.txId?.slice(0, 24)}...
-                  </span>
-                  <span style={{ color: '#666' }}>{tx.timestamp}</span>
+            {historique.map((tx, i) => {
+              let lotData = {};
+              try { lotData = JSON.parse(tx.valeur || '{}'); } catch(e) {}
+              
+              // Convertir timestamp seconds en date lisible
+              let dateAffichee = tx.timestamp;
+              const secMatch = String(tx.timestamp || '').match(/seconds:(\d+)/);
+              if (secMatch && secMatch[1]) {
+                const d = new Date(parseInt(secMatch[1]) * 1000); dateAffichee = d.toLocaleDateString('fr-FR') + ' ' + d.toLocaleTimeString('fr-FR');
+              }
+
+              return (
+                <div key={i} style={{ padding: 14, background: i === 0 ? '#EAF3DE' : '#f9fafb', borderRadius: 8, marginBottom: 8, border: i === 0 ? '1px solid #B2D48C' : '1px solid #e8ecf0' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, alignItems: 'center' }}>
+                    <span style={{ fontFamily: 'monospace', color: '#185FA5', fontSize: 11 }}>
+                      🔗 {tx.txId?.slice(0, 20)}...
+                    </span>
+                    <span style={{ color: '#666', fontSize: 11 }}>📅 {dateAffichee}</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                    <div style={{ fontSize: 11 }}>
+                      <span style={{ color: '#888' }}>Statut : </span>
+                      <span style={{ fontWeight: 600, color: '#333' }}>{lotData.statut || '—'}</span>
+                    </div>
+                    <div style={{ fontSize: 11 }}>
+                      <span style={{ color: '#888' }}>Propriétaire : </span>
+                      <span style={{ fontWeight: 600, color: '#333' }}>{lotData.proprietaireActuel || '—'}</span>
+                    </div>
+                    <div style={{ fontSize: 11 }}>
+                      <span style={{ color: '#888' }}>Quantité : </span>
+                      <span style={{ fontWeight: 600, color: '#333' }}>{lotData.quantite ?? '—'}</span>
+                    </div>
+                  </div>
+                  {i === 0 && <div style={{ fontSize: 10, color: '#3B6D11', marginTop: 6 }}>✅ État actuel</div>}
                 </div>
-                <div style={{ color: '#333', fontSize: 11 }}>
-                  Statut : {JSON.parse(tx.valeur || '{}')?.statut || 'Transaction'}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

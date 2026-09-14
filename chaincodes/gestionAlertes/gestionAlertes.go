@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"time"
 
 	"github.com/hyperledger/fabric-contract-api-go/contractapi"
 )
@@ -49,7 +48,7 @@ func (s *SmartContract) CreerAlerte(
 		NiveauGravite: niveauGravite,
 		Message:       message,
 		Emetteur:      emetteur,
-		Horodatage:    time.Now().Format(time.RFC3339),
+		Horodatage:    func() string { ts, _ := ctx.GetStub().GetTxTimestamp(); return fmt.Sprintf("%d", ts.Seconds) }(),
 		EstActive:     true,
 	}
 
@@ -105,7 +104,7 @@ func (s *SmartContract) DeclencherRappel(
 		NiveauGravite: "Critique",
 		Message:       "RAPPEL OFFICIEL ARP — " + motif,
 		Emetteur:      "ARP",
-		Horodatage:    time.Now().Format(time.RFC3339),
+		Horodatage:    func() string { ts, _ := ctx.GetStub().GetTxTimestamp(); return fmt.Sprintf("%d", ts.Seconds) }(),
 		EstActive:     true,
 	}
 

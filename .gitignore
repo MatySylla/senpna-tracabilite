@@ -4,3 +4,13 @@ wallet/
 *.tar.gz
 *.gz
 vendor/
+
+# React Native / Expo
+.expo/
+dist/
+*.keystore
+*.jks
+android/build/
+android/app/build/
+ios/Pods/
+.DS_Store
