@@ -4,31 +4,41 @@ echo "🚀 Démarrage du système SEN-PNA..."
 # PostgreSQL
 sudo service postgresql start
 
-# Vérifier si les conteneurs Fabric tournent déjà
-CA_RUNNING=$(docker ps | grep "ca_org1" | wc -l)
+CONTENEURS="orderer.example.com peer0.org1.example.com peer0.org2.example.com ca_org1 ca_org2 ca_orderer"
 
-if [ "$CA_RUNNING" -gt "0" ]; then
-    echo "⛓️ Réseau Fabric déjà actif — pas de recréation"
+EXISTE=$(docker ps -a --filter "name=peer0.org1.example.com" --format '{{.Names}}' | wc -l)
+ACTIF=$(docker ps --filter "name=ca_org1" --format '{{.Names}}' | wc -l)
+
+if [ "$ACTIF" -gt "0" ]; then
+    echo "⛓️ Réseau Fabric déjà actif"
+
+elif [ "$EXISTE" -gt "0" ]; then
+    echo "⛓️ Conteneurs existants — redémarrage..."
+    docker start $CONTENEURS
+    echo "⏳ Attente de la CA (port 7054)..."
+    for i in $(seq 1 30); do
+        if docker exec ca_org1 true 2>/dev/null && \
+           (echo > /dev/tcp/127.0.0.1/7054) 2>/dev/null; then
+            echo "✅ CA prête"
+            break
+        fi
+        sleep 2
+    done
+
 else
-    echo "⛓️ Démarrage du réseau Fabric..."
+    echo "⛓️ Création du réseau Fabric..."
     cd ~/fabric-samples/test-network
     ./network.sh up createChannel -c tracabilite -ca
 
     echo "📝 Déploiement des chaincodes..."
-    ./network.sh deployCC -ccn gestionLots \
-      -ccp ~/senpna-tracabilite/chaincodes/gestionLots \
-      -ccl go -c tracabilite -ccv 1.0 -ccs 1
-
-    ./network.sh deployCC -ccn gestionTransferts \
-      -ccp ~/senpna-tracabilite/chaincodes/gestionTransferts \
-      -ccl go -c tracabilite -ccv 1.0 -ccs 1
-
-    ./network.sh deployCC -ccn gestionAlertes \
-      -ccp ~/senpna-tracabilite/chaincodes/gestionAlertes \
-      -ccl go -c tracabilite -ccv 1.0 -ccs 1
+    for CC in gestionLots gestionTransferts gestionAlertes; do
+        ./network.sh deployCC -ccn $CC \
+          -ccp ~/senpna-tracabilite/chaincodes/$CC \
+          -ccl go -c tracabilite -ccv 1.0 -ccs 1
+    done
 fi
 
-echo "✅ Réseau Fabric démarré !"
+echo "✅ Réseau Fabric prêt !"
 echo ""
 echo "👉 Lancez maintenant :"
 echo "   cd ~/senpna-tracabilite/api && node src/scripts/enrollUser.js && node app.js"

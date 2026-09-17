@@ -53,43 +53,9 @@ exports.verifierAuthenticite = async (req, res) => {
     let gateway;
     try {
         gateway = await connectToFabric();
-        const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
-
-        const contractLots = network.getContract('gestionLots');
-        const result = await contractLots.evaluateTransaction('VerifierAuthenticite', req.params.idLot);
-        const verification = JSON.parse(result.toString());
-
-        if (verification.statut !== 'AUTHENTIQUE') {
-            return res.status(200).json(verification);
-        }
-
-        try {
-            const contractAlertes = network.getContract('gestionAlertes');
-            const alertesRaw = await contractAlertes.evaluateTransaction('GetAllAlertes');
-            const data = alertesRaw.toString();
-            const alertes = (data && data !== 'null') ? JSON.parse(data) : [];
-
-            const alertesLot = alertes.filter(a =>
-                a.idLot === req.params.idLot && a.estActive === true
-            );
-
-            if (alertesLot.length > 0) {
-                const critique = alertesLot.find(a => a.niveauGravite === 'Critique');
-                const alerte = critique || alertesLot[0];
-
-                verification.statut = critique ? 'SUSPECT' : 'AUTHENTIQUE';
-                verification.alerteActive = true;
-                verification.typeAlerte = alerte.typeAlerte;
-                verification.niveauGravite = alerte.niveauGravite;
-                verification.message = critique
-                    ? `Alerte critique en cours (${alerte.typeAlerte}) — Ne pas dispenser`
-                    : `Alerte ${alerte.niveauGravite.toLowerCase()} en cours (${alerte.typeAlerte})`;
-            }
-        } catch (e) {
-            verification.avertissement = 'Vérification des alertes indisponible';
-        }
-
-        return res.status(200).json(verification);
+        const contract = (await gateway.getNetwork(process.env.CHANNEL_NAME)).getContract('gestionLots');
+        const result = await contract.evaluateTransaction('VerifierAuthenticite', req.params.idLot);
+        return res.status(200).json(JSON.parse(result.toString()));
     } catch (error) {
         return res.status(500).json({ erreur: error.message });
     } finally {

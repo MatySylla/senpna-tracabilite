@@ -23,8 +23,21 @@ app.use('/api/transferts', transfertsRoutes);
 app.use('/api/alertes', alertesRoutes);
 
 // Route publique patient
-const lotsController = require('./src/controllers/lots.controller');
-app.get('/api/verify/:idLot', lotsController.verifierAuthenticite);
+app.get('/api/verify/:idLot', async (req, res) => {
+    const { connectToFabric } = require('./src/fabric/gateway');
+    let gateway;
+    try {
+        gateway = await connectToFabric();
+        const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
+        const contract = network.getContract('gestionLots');
+        const result = await contract.evaluateTransaction('VerifierAuthenticite', req.params.idLot);
+        return res.status(200).json(JSON.parse(result.toString()));
+    } catch (error) {
+        return res.status(500).json({ erreur: error.message });
+    } finally {
+        if (gateway) gateway.disconnect();
+    }
+});
 
 // Route test
 app.get('/', (req, res) => {
