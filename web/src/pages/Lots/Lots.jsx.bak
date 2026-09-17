@@ -19,7 +19,7 @@ const Lots = () => {
   // Données du formulaire de création
   const [formData, setFormData] = useState({
     idLot: '', nomMedicament: '', codeGTIN: '',
-    fabricant: '', numeroLotFabricant: '', dateFabrication: '', dateExpiration: '',
+    fabricant: '', dateFabrication: '', dateExpiration: '',
     quantite: '', temperature: '25'
   });
 
@@ -88,7 +88,7 @@ const Lots = () => {
       setShowForm(false);
       setFormData({
         idLot: '', nomMedicament: '', codeGTIN: '',
-        fabricant: '', numeroLotFabricant: '', dateFabrication: '', dateExpiration: '',
+        fabricant: '', dateFabrication: '', dateExpiration: '',
         quantite: '', temperature: '25'
       });
       // Recharger la liste après création
@@ -155,7 +155,6 @@ const Lots = () => {
                 { label: 'Code GTIN *', key: 'codeGTIN', placeholder: 'Ex: 09506000134452', type: 'text' },
                 { label: 'Nom du médicament *', key: 'nomMedicament', placeholder: 'Ex: Artéméther 80mg', type: 'text' },
                 { label: 'Fabricant *', key: 'fabricant', placeholder: 'Ex: Sanofi France', type: 'text' },
-                { label: 'N° lot fabricant *', key: 'numeroLotFabricant', placeholder: 'Ex: 4B2109 (imprimé sur la boîte)', type: 'text' },
                 { label: 'Quantité (boîtes) *', key: 'quantite', placeholder: 'Ex: 1000', type: 'number' },
                 { label: 'Température (°C)', key: 'temperature', placeholder: 'Ex: 25', type: 'number' },
                 { label: 'Date fabrication *', key: 'dateFabrication', placeholder: '', type: 'date' },
@@ -227,7 +226,6 @@ const Lots = () => {
                 ['ID Lot', lotResult.idLot],
                 ['Code GTIN', lotResult.codeGTIN],
                 ['Fabricant', lotResult.fabricant],
-                ['N° lot fabricant', lotResult.numeroLotFabricant],
                 ['Quantité', `${lotResult.quantite} boîtes`],
                 ['Propriétaire actuel', lotResult.proprietaireActuel],
                 ['Date fabrication', lotResult.dateFabrication],

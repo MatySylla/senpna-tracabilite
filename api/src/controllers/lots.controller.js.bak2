@@ -5,13 +5,13 @@ const { connectToFabric } = require('../fabric/gateway');
 exports.createLot = async (req, res) => {
     let gateway;
     try {
-        const { idLot, nomMedicament, codeGTIN, fabricant, numeroLotFabricant, dateFabrication, dateExpiration, quantite, temperature } = req.body;
+        const { idLot, nomMedicament, codeGTIN, fabricant, dateFabrication, dateExpiration, quantite, temperature } = req.body;
         if (!idLot || !nomMedicament || !quantite) {
             return res.status(400).json({ erreur: 'Champs obligatoires manquants' });
         }
         gateway = await connectToFabric();
         const contract = (await gateway.getNetwork(process.env.CHANNEL_NAME)).getContract('gestionLots');
-        await contract.submitTransaction('CreateLot', idLot, nomMedicament, codeGTIN||'', fabricant||'', numeroLotFabricant||'', dateFabrication||'', dateExpiration||'', quantite.toString(), (temperature||25).toString());
+        await contract.submitTransaction('CreateLot', idLot, nomMedicament, codeGTIN||'', fabricant||'', dateFabrication||'', dateExpiration||'', quantite.toString(), (temperature||25).toString());
         return res.status(201).json({ message: 'Lot créé avec succès', idLot });
     } catch (error) {
         return res.status(500).json({ erreur: error.message });
@@ -56,25 +56,8 @@ exports.verifierAuthenticite = async (req, res) => {
         const network = await gateway.getNetwork(process.env.CHANNEL_NAME);
 
         const contractLots = network.getContract('gestionLots');
-        let identifiant = req.params.idLot;
-
-        let result = await contractLots.evaluateTransaction('VerifierAuthenticite', identifiant);
-        let verification = JSON.parse(result.toString());
-
-        // Repli : recherche par numero de lot fabricant (imprime sur la boite)
-        if (verification.statut === 'SUSPECT' && !verification.alerteActive) {
-            try {
-                const parFab = await contractLots.evaluateTransaction('RechercherParNumeroFabricant', identifiant);
-                const lot = JSON.parse(parFab.toString());
-                identifiant = lot.idLot;
-                result = await contractLots.evaluateTransaction('VerifierAuthenticite', identifiant);
-                verification = JSON.parse(result.toString());
-                verification.identifiePar = 'numeroLotFabricant';
-                verification.idLot = identifiant;
-            } catch (e) {
-                // pas trouve non plus : on garde le verdict initial
-            }
-        }
+        const result = await contractLots.evaluateTransaction('VerifierAuthenticite', req.params.idLot);
+        const verification = JSON.parse(result.toString());
 
         if (verification.statut !== 'AUTHENTIQUE') {
             return res.status(200).json(verification);
@@ -87,7 +70,7 @@ exports.verifierAuthenticite = async (req, res) => {
             const alertes = (data && data !== 'null') ? JSON.parse(data) : [];
 
             const alertesLot = alertes.filter(a =>
-                a.idLot === identifiant && a.estActive === true
+                a.idLot === req.params.idLot && a.estActive === true
             );
 
             if (alertesLot.length > 0) {
@@ -109,20 +92,6 @@ exports.verifierAuthenticite = async (req, res) => {
         return res.status(200).json(verification);
     } catch (error) {
         return res.status(500).json({ erreur: error.message });
-    } finally {
-        if (gateway) gateway.disconnect();
-    }
-};
-
-exports.rechercherParNumeroFabricant = async (req, res) => {
-    let gateway;
-    try {
-        gateway = await connectToFabric();
-        const contract = (await gateway.getNetwork(process.env.CHANNEL_NAME)).getContract('gestionLots');
-        const result = await contract.evaluateTransaction('RechercherParNumeroFabricant', req.params.numero);
-        return res.status(200).json(JSON.parse(result.toString()));
-    } catch (error) {
-        return res.status(404).json({ erreur: 'Aucun lot trouve pour ce numero fabricant' });
     } finally {
         if (gateway) gateway.disconnect();
     }

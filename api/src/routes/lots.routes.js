@@ -9,6 +9,7 @@ router.get('/', lotsController.getAllLots);
 
 // Routes lots
 router.post('/create', lotsController.createLot);
+router.get('/fabricant/:numero', lotsController.rechercherParNumeroFabricant);
 router.get('/:idLot/historique', lotsController.getHistorique);
 router.get('/:idLot/verifier', lotsController.verifierAuthenticite);
 router.get('/:idLot', lotsController.getLot);

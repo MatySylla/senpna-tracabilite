@@ -18,7 +18,6 @@ type LotMedicament struct {
 	NomMedicament      string  `json:"nomMedicament"`
 	CodeGTIN           string  `json:"codeGTIN"`
 	Fabricant          string  `json:"fabricant"`
-	NumeroLotFabricant string  `json:"numeroLotFabricant"`
 	DateFabrication    string  `json:"dateFabrication"`
 	DateExpiration     string  `json:"dateExpiration"`
 	Quantite           int     `json:"quantite"`
@@ -37,7 +36,6 @@ func (s *SmartContract) CreateLot(
 	nomMedicament string,
 	codeGTIN string,
 	fabricant string,
-	numeroLotFabricant string,
 	dateFabrication string,
 	dateExpiration string,
 	quantite int,
@@ -58,7 +56,6 @@ func (s *SmartContract) CreateLot(
 		NomMedicament:      nomMedicament,
 		CodeGTIN:           codeGTIN,
 		Fabricant:          fabricant,
-		NumeroLotFabricant: numeroLotFabricant,
 		DateFabrication:    dateFabrication,
 		DateExpiration:     dateExpiration,
 		Quantite:           quantite,
@@ -76,34 +73,6 @@ func (s *SmartContract) CreateLot(
 	}
 
 	return ctx.GetStub().PutState(idLot, lotJSON)
-}
-
-// RechercherParNumeroFabricant — Retrouver un lot à partir du numéro imprimé sur la boîte
-func (s *SmartContract) RechercherParNumeroFabricant(
-ctx contractapi.TransactionContextInterface,
-numeroLotFabricant string) (*LotMedicament, error) {
-
-resultsIterator, err := ctx.GetStub().GetStateByRange("", "")
-if err != nil {
-return nil, err
-}
-defer resultsIterator.Close()
-
-for resultsIterator.HasNext() {
-queryResponse, err := resultsIterator.Next()
-if err != nil {
-return nil, err
-}
-var lot LotMedicament
-if err := json.Unmarshal(queryResponse.Value, &lot); err != nil {
-continue
-}
-if lot.NumeroLotFabricant == numeroLotFabricant && lot.LotParent == "" {
-return &lot, nil
-}
-}
-
-return nil, fmt.Errorf("aucun lot trouve pour le numero fabricant %s", numeroLotFabricant)
 }
 
 // GetLot — Consulter un lot
