@@ -41,12 +41,6 @@ func (s *SmartContract) CreerAlerte(
 		return fmt.Errorf("alerte %s existe déjà", idAlerte)
 	}
 
-	if reponse := ctx.GetStub().InvokeChaincode("gestionLots",
-		[][]byte{[]byte("GetLot"), []byte(idLot)},
-		ctx.GetStub().GetChannelID()); reponse.Status != 200 {
-		return fmt.Errorf("le lot %s n'existe pas dans le registre", idLot)
-	}
-
 	alerte := Alerte{
 		IdAlerte:      idAlerte,
 		IdLot:         idLot,
@@ -101,12 +95,6 @@ func (s *SmartContract) DeclencherRappel(
 	}
 	if alerteExistante != nil {
 		return fmt.Errorf("rappel %s existe déjà", idAlerte)
-	}
-
-	if reponse := ctx.GetStub().InvokeChaincode("gestionLots",
-		[][]byte{[]byte("GetLot"), []byte(idLot)},
-		ctx.GetStub().GetChannelID()); reponse.Status != 200 {
-		return fmt.Errorf("le lot %s n'existe pas dans le registre", idLot)
 	}
 
 	alerte := Alerte{

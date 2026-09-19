@@ -40,26 +40,6 @@ if existant != nil {
 return fmt.Errorf("transfert %s existe déjà", idTransfert)
 }
 
-// Verifier que le lot existe dans gestionLots
-reponse := ctx.GetStub().InvokeChaincode("gestionLots",
-[][]byte{[]byte("GetLot"), []byte(idLot)},
-ctx.GetStub().GetChannelID())
-
-if reponse.Status != 200 {
-return fmt.Errorf("le lot %s n'existe pas dans le registre", idLot)
-}
-
-var lot struct {
-Quantite int `json:"quantite"`
-}
-if err := json.Unmarshal(reponse.Payload, &lot); err != nil {
-return fmt.Errorf("erreur lecture du lot %s : %v", idLot, err)
-}
-
-if quantite > lot.Quantite {
-return fmt.Errorf("quantite demandee (%d) superieure au stock disponible (%d) pour le lot %s", quantite, lot.Quantite, idLot)
-}
-
 ts, _ := ctx.GetStub().GetTxTimestamp()
 transfert := Transfert{
 IdTransfert:      idTransfert,

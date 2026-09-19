@@ -78,7 +78,7 @@ const s = StyleSheet.create({
   logout: { backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6 },
   logoutText: { color: '#fff', fontSize: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', padding: 12, gap: 8 },
-  card: { width: '47%', borderRadius: 12, padding: 16, alignItems: 'center', margin: '1.5%' },
+  card: { width: '47%', borderRadius: 12, padding: 16, alignItems: 'center' },
   cardIcon: { fontSize: 28, marginBottom: 6 },
   cardVal: { fontSize: 28, fontWeight: '700', color: '#1a1a1a' },
   cardLabel: { fontSize: 12, color: '#555', marginTop: 2 },
