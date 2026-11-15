@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout/Layout';
@@ -36,6 +36,7 @@ const Utilisateurs = () => {
       await api.post('/api/auth/register', formData);
       setSucces(`✅ Utilisateur ${formData.prenom} ${formData.nom} créé avec succès !`);
       setShowForm(false);
+      await chargerUtilisateurs();
       setFormData({ nom: '', prenom: '', email: '', motDePasse: '', role: 'PHARMACIEN_PRA', idOrganisation: '3' });
     } catch (err) {
       setErreur(err.response?.data?.erreur || 'Erreur lors de la création');
@@ -53,12 +54,19 @@ const Utilisateurs = () => {
     return { background: '#F1EFE8', color: '#444' };
   };
 
-  // Utilisateurs existants dans le système
-  const utilisateurs = [
-    { id: 4, nom: 'Diallo', prenom: 'Seydou', email: 'admin@senpna.sn', role: 'ADMIN_SENPNA', org: 'SEN-PNA', actif: true },
-    { id: 5, nom: 'Sylla', prenom: 'Fatou', email: 'inspecteur@arp.sn', role: 'INSPECTEUR_ARP', org: 'ARP', actif: true },
-    { id: 6, nom: 'Sow', prenom: 'Ibrahima', email: 'pharmacien@pra-dakar.sn', role: 'PHARMACIEN_PRA', org: 'PRA-DKR', actif: true },
-  ];
+  // Comptes du système, chargés depuis la base relationnelle
+  const [utilisateurs, setUtilisateurs] = useState([]);
+
+  const chargerUtilisateurs = async () => {
+    try {
+      const { data } = await api.get('/api/utilisateurs');
+      setUtilisateurs(data);
+    } catch (err) {
+      setErreur("Impossible de charger la liste des comptes");
+    }
+  };
+
+  useEffect(() => { chargerUtilisateurs(); }, []);
 
   return (
     <Layout pageCourante="/utilisateurs">

@@ -20,7 +20,7 @@ const Transferts = () => {
   // Données du formulaire d'initiation
   const [formData, setFormData] = useState({
     idTransfert: '', idLot: '',
-    expediteur: user?.organisation || 'SEN-PNA',
+    expediteur: user?.organisation || 'SENPNA',
     destinataire: '', quantite: '', bonLivraison: ''
   });
 
@@ -63,7 +63,7 @@ const Transferts = () => {
       });
       setSucces(`✅ Transfert ${formData.idTransfert} initié avec succès !`);
       setShowForm(false);
-      setFormData({ idTransfert: '', idLot: '', expediteur: user?.organisation || 'SEN-PNA', destinataire: '', quantite: '', bonLivraison: '' });
+      setFormData({ idTransfert: '', idLot: '', expediteur: user?.organisation || 'SENPNA', destinataire: '', quantite: '', bonLivraison: '' });
       // Recharger la liste après initiation
       await chargerTransferts();
     } catch (err) {
@@ -180,7 +180,7 @@ const Transferts = () => {
               {[
                 { label: 'ID Transfert *', key: 'idTransfert', placeholder: 'Ex: TR-006' },
                 { label: 'ID Lot *', key: 'idLot', placeholder: 'Ex: ML-043' },
-                { label: 'Expéditeur', key: 'expediteur', placeholder: 'Ex: SEN-PNA' },
+                { label: 'Expéditeur', key: 'expediteur', placeholder: 'Ex: SENPNA' },
                 { label: 'Destinataire *', key: 'destinataire', placeholder: 'Ex: PRA-DKR' },
                 { label: 'Quantité *', key: 'quantite', placeholder: 'Ex: 200' },
                 { label: 'Bon de livraison', key: 'bonLivraison', placeholder: 'Ex: BL-2026-006' },

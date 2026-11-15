@@ -54,7 +54,7 @@ export default function ScannerScreen() {
         })()}
         <Text style={s.testsTitle}>Tests rapides :</Text>
         <View style={s.testsRow}>
-          {['ML-045', 'ML-046', 'ML-047', 'FAUX-001'].map(id => (
+          {['ML-050', '3K2847', 'ML-045-TR-101', 'FAUX-001'].map(id => (
             <TouchableOpacity key={id} style={s.testBtn} onPress={() => { setIdLot(id); verifier(id); }}>
               <Text style={s.testBtnText}>{id}</Text>
             </TouchableOpacity>

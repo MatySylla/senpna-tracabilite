@@ -9,6 +9,7 @@ const authRoutes = require('./src/routes/auth.routes');
 const lotsRoutes = require('./src/routes/lots.routes');
 const transfertsRoutes = require('./src/routes/transferts.routes');
 const alertesRoutes = require('./src/routes/alertes.routes');
+const utilisateursRoutes = require('./src/routes/utilisateurs.routes');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/lots', lotsRoutes);
 app.use('/api/transferts', transfertsRoutes);
 app.use('/api/alertes', alertesRoutes);
+app.use('/api/utilisateurs', utilisateursRoutes);
 
 // Route publique patient
 const lotsController = require('./src/controllers/lots.controller');

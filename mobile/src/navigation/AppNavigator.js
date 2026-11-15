@@ -21,10 +21,27 @@ export default function AppNavigator() {
     </View>
   );
 
+  // Avant authentification : la connexion et la verification publique
   if (!user) return (
     <NavigationContainer>
-      <Tab.Navigator screenOptions={{ tabBarStyle: { display: 'none' }, headerShown: false }}>
-        <Tab.Screen name="Login" component={LoginScreen} />
+      <Tab.Navigator screenOptions={{
+        tabBarActiveTintColor: '#185FA5',
+        tabBarInactiveTintColor: '#999',
+        tabBarStyle: { paddingBottom: 5, height: 60 },
+        headerShown: false,
+      }}>
+        <Tab.Screen name="Connexion" component={LoginScreen}
+          options={{ tabBarIcon: () => <Text style={{ fontSize: 22 }}>🔑</Text> }} />
+        <Tab.Screen name="Verification" component={ScannerScreen}
+          options={{
+            title: 'Verifier un medicament',
+            tabBarLabel: 'Verifier',
+            headerShown: true,
+            headerStyle: { backgroundColor: '#185FA5' },
+            headerTintColor: '#fff',
+            headerTitleStyle: { fontWeight: '700' },
+            tabBarIcon: () => <Text style={{ fontSize: 22 }}>🔍</Text>,
+          }} />
       </Tab.Navigator>
     </NavigationContainer>
   );

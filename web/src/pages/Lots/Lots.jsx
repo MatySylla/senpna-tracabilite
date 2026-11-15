@@ -2,6 +2,15 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout/Layout';
 import { getLot, createLot, getHistorique, getAllLots } from '../../services/api';
+import { QRCodeSVG } from 'qrcode.react';
+
+// Le chaincode renvoie un timestamp Unix en secondes (chaine).
+const formaterDate = (v) => {
+  if (!v) return '—';
+  const d = /^\d+$/.test(String(v)) ? new Date(Number(v) * 1000) : new Date(v);
+  return isNaN(d.getTime()) ? '—' : d.toLocaleString('fr-FR');
+};
+
 
 const Lots = () => {
   const { user } = useAuth();
@@ -233,14 +242,55 @@ const Lots = () => {
                 ['Date fabrication', lotResult.dateFabrication],
                 ['Date expiration', lotResult.dateExpiration],
                 ['Température', `${lotResult.temperature}°C`],
-                ['Créé le', new Date(lotResult.dateCreation).toLocaleString('fr-FR')],
-                ['Mis à jour', new Date(lotResult.dateMiseAJour).toLocaleString('fr-FR')],
+                ['Créé le', formaterDate(lotResult.dateCreation)],
+                ['Mis à jour', formaterDate(lotResult.dateMiseAJour)],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid #eee', fontSize: 13 }}>
                   <span style={{ color: '#666' }}>{k}</span>
                   <span style={{ fontWeight: 500, color: '#333' }}>{v}</span>
                 </div>
               ))}
+            </div>
+
+            {/* Code QR genere a l'affichage a partir de l'identifiant du lot */}
+            <div style={{ marginTop: 20, paddingTop: 16, borderTop: '1px solid #eee', textAlign: 'center' }}>
+              <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 12, color: '#333' }}>
+                Code QR du lot
+              </h4>
+              <div style={{ display: 'inline-block', padding: 12, background: '#fff', border: '1px solid #ddd', borderRadius: 8 }}>
+                <div id="etiquette-qr"><QRCodeSVG value={lotResult.idLot} size={160} level="M" /></div>
+              </div>
+              <p style={{ fontSize: 12, color: '#666', marginTop: 10 }}>
+                Contenu : <strong>{lotResult.idLot}</strong>
+                {lotResult.numeroLotFabricant ? ` — n° fabricant ${lotResult.numeroLotFabricant}` : ''}
+              </p>
+              <p style={{ fontSize: 11, color: '#999', marginTop: 4 }}>
+                Généré à l&apos;affichage, non stocké dans le registre
+              </p>
+              <button
+                onClick={() => {
+                  const zone = document.getElementById('etiquette-qr');
+                  const f = window.open('', '', 'width=420,height=560');
+                  f.document.write(`<html><head><title>Etiquette ${lotResult.idLot}</title>
+                    <style>body{font-family:Arial,sans-serif;text-align:center;padding:24px}
+                    .b{border:2px solid #000;border-radius:8px;padding:16px;display:inline-block}
+                    h3{margin:0 0 4px;font-size:15px}p{margin:2px 0;font-size:12px}</style>
+                    </head><body><div class="b">
+                    <h3>${lotResult.nomMedicament}</h3>
+                    <p>Lot ${lotResult.idLot}</p>
+                    ${zone.innerHTML}
+                    <p><strong>N&deg; fabricant : ${lotResult.numeroLotFabricant || '-'}</strong></p>
+                    <p>Exp. ${lotResult.dateExpiration}</p>
+                    <p style="font-size:10px">Systeme de tracabilite SEN-PNA</p>
+                    </div></body></html>`);
+                  f.document.close();
+                  f.focus();
+                  setTimeout(() => { f.print(); f.close(); }, 300);
+                }}
+                style={{ marginTop: 14, padding: '8px 18px', background: '#1a5fb4', color: '#fff',
+                         border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}>
+                🖨️ Imprimer l&apos;étiquette
+              </button>
             </div>
           </div>
         )}
