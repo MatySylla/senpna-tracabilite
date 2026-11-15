@@ -152,7 +152,11 @@ exports.getAllLots = async (req, res) => {
         const result = await contract.evaluateTransaction('GetAllLots');
         const data = result.toString();
         // Retourne [] si vide ou null
-        const lots = (data && data !== 'null') ? JSON.parse(data) : [];
+        let lots = (data && data !== 'null') ? JSON.parse(data) : [];
+        // Cloisonnement : hors administrateur et inspecteur, un acteur ne voit que les lots de son organisation
+        if (!['ADMIN_SENPNA', 'INSPECTEUR_ARP'].includes(req.user.role)) {
+            lots = lots.filter(l => l.proprietaireActuel === req.user.organisation);
+        }
         return res.status(200).json(lots);
     } catch (error) {
         return res.status(500).json({ erreur: error.message });

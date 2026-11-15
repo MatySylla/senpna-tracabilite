@@ -154,7 +154,12 @@ exports.getAllTransferts = async (req, res) => {
 
         const result = await contract.evaluateTransaction('GetAllTransferts');
         const data = result.toString();
-        const transferts = (data && data !== "null") ? JSON.parse(data) : [];
+        let transferts = (data && data !== "null") ? JSON.parse(data) : [];
+        // Cloisonnement : un acteur ne voit que les transferts qu'il expedie ou qu'il recoit
+        if (!['ADMIN_SENPNA', 'INSPECTEUR_ARP'].includes(req.user.role)) {
+            const org = req.user.organisation;
+            transferts = transferts.filter(t => t.expediteur === org || t.destinataire === org);
+        }
         return res.status(200).json(transferts);
 
     } catch (error) {
