@@ -88,7 +88,7 @@ exports.confirmerReception = async (req, res) => {
         await contractLots.submitTransaction(
             'UpdateLot',
             transfert.idLot,
-            'En stock SEN-PNA',
+            'En stock ' + transfert.expediteur,
             nouvelleQuantite.toString(),
             transfert.expediteur
         );
