@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout/Layout';
-import { getLot, createLot, getHistorique, getAllLots } from '../../services/api';
+import { getLot, createLot, getHistorique, getAllLots, getAllTransferts } from '../../services/api';
 import { QRCodeSVG } from 'qrcode.react';
 
 // Le chaincode renvoie un timestamp Unix en secondes (chaine).
@@ -20,6 +20,7 @@ const Lots = () => {
   const [idLotRecherche, setIdLotRecherche] = useState('');
   const [lotResult, setLotResult] = useState(null);
   const [historique, setHistorique] = useState(null);
+  const [transfertsLies, setTransfertsLies] = useState([]);
   const [erreur, setErreur] = useState('');
   const [succes, setSucces] = useState('');
   const [loading, setLoading] = useState(false);
@@ -57,6 +58,7 @@ const Lots = () => {
     setErreur('');
     setLotResult(null);
     setHistorique(null);
+    setTransfertsLies([]);
     try {
       const res = await getLot(idLotRecherche);
       setLotResult(res.data);
@@ -75,6 +77,19 @@ const Lots = () => {
     try {
       const res = await getHistorique(idLotRecherche);
       setHistorique(res.data);
+      // Transferts lies a ce lot, lus dans le contrat gestionTransferts
+      try {
+        const id = idLotRecherche.trim();
+        const rt = await getAllTransferts();
+        const liste = Array.isArray(rt.data) ? rt.data : (Array.isArray(rt.data?.data) ? rt.data.data : []);
+        const recu = id.match(/-(TR-\d+)$/); // lot derive : transfert par lequel il a ete recu
+        const lies = liste
+          .filter(t => t.idLot === id || (recu && t.idTransfert === recu[1]))
+          .map(t => ({ ...t, sens: t.idLot === id ? 'envoi' : 'reception' }));
+        setTransfertsLies(lies);
+      } catch (e) {
+        setTransfertsLies([]);
+      }
     } catch (err) {
       setErreur('Erreur lors de la récupération de l\'historique');
     } finally {
@@ -304,7 +319,7 @@ const Lots = () => {
             {historique.map((tx, i) => {
               let lotData = {};
               try { lotData = JSON.parse(tx.valeur || '{}'); } catch(e) {}
-              
+
               // Convertir timestamp seconds en date lisible
               let dateAffichee = tx.timestamp;
               const secMatch = String(tx.timestamp || '').match(/seconds:(\d+)/);
@@ -338,6 +353,39 @@ const Lots = () => {
                 </div>
               );
             })}
+
+            {/* Transferts lies a ce lot (contrat gestionTransferts) */}
+            {transfertsLies.length > 0 && (
+              <div style={{ marginTop: 16 }}>
+                <h4 style={{ fontSize: 14, fontWeight: 600, marginBottom: 10, color: '#333' }}>
+                  🔁 Transferts liés à ce lot
+                </h4>
+                {transfertsLies.map(t => {
+                  const confirme = /confirm/i.test(t.statut || '');
+                  const rejete = /rejet/i.test(t.statut || '');
+                  const couleur = confirme ? { bg: '#EAF3DE', bd: '#B2D48C', fg: '#27500A' }
+                    : rejete ? { bg: '#FCEBEB', bd: '#F0B4B4', fg: '#A32D2D' }
+                    : { bg: '#FFF6E5', bd: '#F2D59B', fg: '#8A5A00' };
+                  const motif = t.motif || t.motifRejet;
+                  return (
+                    <div key={t.idTransfert} style={{ padding: 12, background: couleur.bg, borderRadius: 8, marginBottom: 8, border: `1px solid ${couleur.bd}`, fontSize: 12 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, color: '#333' }}>
+                          {t.sens === 'envoi' ? '📤 Envoi' : '📥 Réception'} · {t.idTransfert}
+                        </span>
+                        <span style={{ fontWeight: 600, color: couleur.fg }}>{t.statut || '—'}</span>
+                      </div>
+                      <div style={{ marginTop: 6, color: '#444' }}>
+                        <strong>{t.quantite}</strong> boîtes · {t.expediteur} → <strong>{t.destinataire}</strong>
+                        {t.sens === 'reception' && <> · depuis le lot <span style={{ fontFamily: 'monospace' }}>{t.idLot}</span></>}
+                        {t.sens === 'envoi' && confirme && <> · lot dérivé <span style={{ fontFamily: 'monospace' }}>{t.idLot}-{t.idTransfert}</span></>}
+                      </div>
+                      {rejete && motif && <div style={{ marginTop: 4, color: '#A32D2D' }}>Motif : {motif}</div>}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
       </div>
