@@ -86,8 +86,15 @@ exports.verifierAuthenticite = async (req, res) => {
             const data = alertesRaw.toString();
             const alertes = (data && data !== 'null') ? JSON.parse(data) : [];
 
+            // Un lot derive herite des alertes de ses ancetres (ML-064-TR-124 -> ML-064)
+            const ancetres = [identifiant];
+            let courant = identifiant;
+            while (/-TR-\d+$/.test(courant)) {
+                courant = courant.replace(/-TR-\d+$/, '');
+                ancetres.push(courant);
+            }
             const alertesLot = alertes.filter(a =>
-                a.idLot === identifiant && a.estActive === true
+                ancetres.includes(a.idLot) && a.estActive === true
             );
 
             if (alertesLot.length > 0) {
